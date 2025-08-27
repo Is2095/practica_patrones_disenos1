@@ -12,7 +12,9 @@ export class ExecutableTask {
     const db = DbConnection.getInstance();
     db.addTask({
       name: this.task.name,
-      type: this.task.constructor.name,
+      type: this.task.constructor.name,  // obtiene el nombre  de la clase actual
+      prioridad: this.task.prioridad,
+      mensaje: this.task.mensaje,
       strategy: this.strategy.constructor.name,
       executedAt: new Date()
     });

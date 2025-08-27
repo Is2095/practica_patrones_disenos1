@@ -1,9 +1,11 @@
 // singleton
 
-interface TaskRecord {
+export interface TaskRecord {
   name: string;
   type: string;
   strategy: string;
+  prioridad: number;
+  mensaje: string;
   executedAt: Date
 }
 export class TaskDb {

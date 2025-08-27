@@ -1,4 +1,6 @@
 import { TaskBuilder } from "./builder/Builder_Task";
+import { TaskFacade } from "./facade/FacadePro";
+import { CloneableTask } from "./prototype/PrototypePro";
 import { DbConnection } from "./singletonDB/Singleton_DB";
 import {
   ConditionalStrategy,
@@ -9,25 +11,6 @@ import {
 import { TaskFactory } from "./task_factory/Task";
 
 import readlineSync from "readline-sync";
-/*
-//creamosuna tarea con Factory
-const task = TaskFactory.createTask("mail", "Responder correos de clientes ")
-
-// definimos una estrategia
-const strategy = new InmediateStrategy()
-
-// la construimos con Builder
-const executable = new TaskBuilder()
-.setTask(task)
-.setStrategy(strategy)
-.build()
-
-// ejecutamos
-executable.execute()
-
-// vemos historial desde singleton
-console.log("Historial de tareas: ", DbConnection.getInstance().getTasks());
-*/
 
 function main() {
   console.log(" -- Bienvenido al asistente de tareas -- ");
@@ -38,6 +21,7 @@ function main() {
     console.log("[1] Crear nueva tarea");
     console.log("[2] Ver historial de tareas");
     console.log("[3] Limpiar historial");
+    console.log("[4] Crear tarea desde plantilla");
     console.log("[0] Salir");
 
     const choice = readlineSync.question("Seleccione una opción: ");
@@ -115,7 +99,7 @@ function main() {
 
           tasks.forEach((t, i) => {
             console.log(`
-               #${i + 1} - ${t.type} | ${t.name} | Prioridad: ${
+              #${i + 1} - ${t.type} | ${t.name} | Prioridad: ${
               t.prioridad
             } | Mensaje: ${t.mensaje} | Estrategia: ${
               t.strategy
@@ -123,16 +107,66 @@ function main() {
               `);
           });
         }
-
-        // console.log(
-        //   db.getTasks().length ? db.getTasks() : "No hay tareas registradas. "
-        // );
         break;
       }
       case "3": {
         const db = DbConnection.getInstance();
         db.clear();
         console.log("Historial limpio.");
+        break;
+      }
+      case "4": {
+        const facade = TaskFacade.getInstance();
+        const templates = facade.listAvailableTemplate();
+
+        console.log("\nPlantillas disponibles: ");
+        templates.forEach((template, index) => {
+          console.log(`[${index + 1}] ${template.name}`);
+        });
+        const index = readlineSync.questionInt("Selecione una plantilla: ", {
+          limit: Array.from(Array(templates.length).keys()),
+        });
+        const templateName = templates[index - 1];
+        if (!templateName) break;
+        const nuevaNombre = readlineSync.question("Nombre de la nueva tarea: ");
+
+        const nuevaTarea = templateName.clone() as CloneableTask;
+        nuevaTarea.setName(nuevaNombre);
+
+        const nuevaPrioridad = readlineSync.questionInt(
+          "Nueva prioridad (0 para mantener la actual): "
+        );
+        if (nuevaPrioridad !== 0) nuevaTarea.setPrioridad(nuevaPrioridad);
+
+        const nuevoMensaje = readlineSync.question(
+          "Nuevo mensaje (Enter para mantener el actual): "
+        );
+        if (nuevoMensaje) nuevaTarea.setMensaje(nuevoMensaje);
+
+        console.log("\nEstrategias disponibles:");
+        console.log("[1] Inmediata");
+        console.log("[2] Programada");
+        console.log("[3] Condicional");
+
+        const opcion = readlineSync.questionInt("Selecione una estrategia: ");
+
+        let nuevaStrategy: ExecutionStrategy;
+        switch (opcion) {
+          case 1:
+            nuevaStrategy = new InmediateStrategy();
+            break;
+          case 2:
+            nuevaStrategy = new ScheduledStrategy();
+            break;
+          case 3:
+            nuevaStrategy = new ConditionalStrategy();
+            break;
+          default:
+            nuevaStrategy = new InmediateStrategy();
+        }
+
+        facade.executeTask(nuevaTarea, nuevaStrategy);
+
         break;
       }
       case "0": {
